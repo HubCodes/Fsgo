@@ -9,7 +9,12 @@
     </ItemGroup>
     
     <ItemGroup>
+      <Compile Include="StringAcc.fs" />
       <Compile Include="Lexer.fs" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <PackageReference Include="FSharpPlus" Version="1.2.0-CI01240" />
     </ItemGroup>
 
 </Project>

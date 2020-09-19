@@ -1,30 +1,39 @@
 module Fsgo.FrontEnd.Lexer
 
 open System
-open System.IO
-open System.Text
 
+open FSharpPlus
+open FSharpPlus.Data
 open Fsgo.Lang.Token
+open Fsgo.FrontEnd.StringAcc
 
-let private isIdentifierStart ch = Char.IsLetter (char ch)
+let peek = State (fun stream -> Seq.head stream, stream)
 
-let private isDigit ch = Char.IsDigit (char ch)
+let read = State (fun stream -> Seq.head stream, Seq.tail stream)
 
-let private lexIdentifier (code: StreamReader) =
-  let sb = StringBuilder ()
-  let rec makeToken (acc: StringBuilder) (code: StreamReader) =
-    match code.Peek () with
-    | ch when isIdentifierStart ch || isDigit ch ->
-      makeToken (acc.Append (code.Read ())) code
-    | _ -> acc.ToString ()
-  makeToken (sb.Append (code.Read ())) code |> Identifier
+let private isIdentifierStart ch = Char.IsLetter ch
 
-let private doLex (code: StreamReader) =
-  let startChar = code.Peek ()
-  match startChar with
-  | ch when isIdentifierStart ch -> lexIdentifier code
-  | _ -> Identifier ""
+let private isDigit ch = Char.IsDigit ch
+
+let private lexIdentifier =
+  let stringAcc = makeStringAcc ()
+  let rec makeToken acc =
+    monad {
+      match! peek with
+      | ch when isIdentifierStart ch || isDigit ch ->
+        let! ch = read
+        return! makeToken (acc >>= append ch)
+      | _ -> toString acc |> Identifier
+    }
+  makeToken stringAcc
+
+let private doLex =
+  monad {
+    let! startChar = peek
+    match startChar with
+    | ch when isIdentifierStart ch -> return! lexIdentifier
+    | _ -> Identifier ""
+  }
 
 let lex (code: string) =
-  use codeReader = new StreamReader (code)
-  Ok ()
+  State.run doLex (String.toSeq code) |> fst |> Ok

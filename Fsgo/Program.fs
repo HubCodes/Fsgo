@@ -1,6 +1,8 @@
-﻿open System
+﻿module Fsgo.Program
+
+open Fsgo.FrontEnd.Lexer
 
 [<EntryPoint>]
 let main _ =
-  printfn "Hello World from F#!"
+  printfn "%A" <| lex "identifier 1"
   0
