@@ -46,8 +46,15 @@ let doLex =
     let! startChar = peek
     match startChar with
     | ch when isIdentifierStart ch -> return! lexIdentifier
-    // | _ -> Token (Identifier "", Loc.empty)
+    // | ch when isEndOfFile ch -> return! lexEndOfFile
+    // TODO: 공백 처리하기
+    | _ -> Token (Identifier "", Loc.empty)
   }
 
 let lex (code: string) =
-  State.run doLex (String.toSeq code, { Line = 0; Col = 0 }) |> Ok
+  let rec repeatLex acc state =
+    let token, nextState = State.run doLex state
+    match token with
+    | (End, _) -> acc
+    | _ -> repeatLex (token :: acc) nextState
+  repeatLex [] (String.toSeq code, { Line = 0; Col = 0 }) |> Ok
