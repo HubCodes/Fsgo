@@ -12,6 +12,7 @@ module Loc =
 
 type RawToken =
   | Identifier of string
+  | Whitespace
   | End
 
 type Token = RawToken * Loc
