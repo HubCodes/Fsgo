@@ -29,6 +29,18 @@ let private isDigit = Char.IsDigit
 
 let private isWhitespace = Char.IsWhiteSpace
 
+let lexWhitespace =
+  let rec makeToken () =
+    monad {
+      match! peek with
+      | ch when isWhitespace ch ->
+        let! _ = read
+        return! makeToken ()
+      | _ ->
+        return! tokenFromState Whitespace
+    }
+  makeToken ()
+
 let lexIdentifier =
   let stringAcc = makeStringAcc ()
   let rec makeToken acc =
@@ -43,24 +55,12 @@ let lexIdentifier =
     }
   makeToken stringAcc
 
-let lexWhitespace =
-  let rec makeToken () =
-    monad {
-      match! peek with
-      | ch when isWhitespace ch ->
-        let! _ = read
-        return! makeToken ()
-      | _ ->
-        return! tokenFromState Whitespace
-    }
-  makeToken ()
-
 let doLex =
   monad {
     let! startChar = peek
     match startChar with
-    | ch when isIdentifierStart ch -> return! lexIdentifier
     | ch when isWhitespace ch -> return! lexWhitespace
+    | ch when isIdentifierStart ch -> return! lexIdentifier
     // | ch when isEndOfFile ch -> return! lexEndOfFile
     | _ -> Token (End, Loc.empty)
   }
