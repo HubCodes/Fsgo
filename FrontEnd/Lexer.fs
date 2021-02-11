@@ -6,8 +6,15 @@ open FSharpPlus.Data
 open Fsgo.Lang.Token
 open Fsgo.FrontEnd.StringAcc
 
+let makeState (code: string) = String.toSeq code, Loc.empty
+
 let private peek =
-  State (fun (stream, loc) -> Seq.head stream, (stream, loc))
+  let doPeek (stream, loc) =
+    if Seq.length stream = 0 then
+      Convert.ToChar 0, (stream, loc)
+    else
+      Seq.head stream, (stream, loc)
+  State doPeek
 
 let private read =
   let updateState (stream, loc) =
@@ -55,13 +62,32 @@ let lexIdentifier =
     }
   makeToken stringAcc
 
+let lexNumber =
+  let stringAcc = makeStringAcc ()
+  let mutable dotAvailable = true
+  let rec makeToken acc =
+    monad {
+      match! peek with
+      | ch when isDigit ch ->
+        let! ch = read
+        return! makeToken (acc >>= append ch)
+      | '.' when dotAvailable ->
+        let! ch = read
+        dotAvailable <- false
+        return! makeToken (acc >>= append ch)
+      | _ ->
+        let tokenStr = toString acc
+        return! tokenFromState (Number (double tokenStr))
+    }
+  makeToken stringAcc
+
 let doLex =
   monad {
     let! startChar = peek
     match startChar with
     | ch when isWhitespace ch -> return! lexWhitespace
     | ch when isIdentifierStart ch -> return! lexIdentifier
-    // | ch when isEndOfFile ch -> return! lexEndOfFile
+    | ch when isDigit ch -> return! lexNumber
     | _ -> Token (End, Loc.empty)
   }
 
@@ -71,4 +97,4 @@ let lex (code: string) =
     match token with
     | (End, _) -> acc
     | _ -> repeatLex (token :: acc) nextState
-  repeatLex [] (String.toSeq code, { Line = 0; Col = 0 }) |> Ok
+  repeatLex [] (String.toSeq code, Loc.empty) |> List.rev |> Ok

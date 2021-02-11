@@ -12,6 +12,7 @@ module Loc =
 
 type RawToken =
   | Identifier of string
+  | Number of double
   | Whitespace
   | End
 

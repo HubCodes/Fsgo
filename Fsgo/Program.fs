@@ -4,5 +4,5 @@ open Fsgo.FrontEnd.Lexer
 
 [<EntryPoint>]
 let main _ =
-  printfn "%A" <| lex "identifier 1"
+  printfn "%A" <| lex "identifier2 1"
   0
